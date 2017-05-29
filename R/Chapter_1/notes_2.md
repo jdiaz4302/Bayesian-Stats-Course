@@ -21,4 +21,3 @@ Information criteria are a family of metrics used to compare structurally differ
 2. They allow for the comparison of multiple non-null models. This is valuable because we can see how well models do in comparison to reality and each other, rather than seeing if they can be falsified in one aspect or another. Model comparison > model falsification.
 
 
-

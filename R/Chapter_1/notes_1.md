@@ -1,6 +1,7 @@
 ## Notes from session #2
 ### Pages 1-13
 
+
 #### Statistical golems
 
 Golems (mythical) are thoughtless 'machines' that do as they are told. Statistical tests are similar, they can't qualify if what they are doing is appropriate - they simply do. There are hundreds of these tests, some of which are practically never used appropriately. Each test has a unique set of assumptions and interpretations. To ensure appropriate use, one must be an expert of the domain of research and statistics, because one can miss the complexities of the other.
@@ -24,4 +25,5 @@ The worth-learning statistical tools of the social and biological sciences.
 'Bayesian' tends to refer to a particular interpretation of "probability". Where the 'Frequentist' interprets probability as factual long-term proportion, the 'Bayesian' interprets it as a plausibiity, which strays from 0 and 1 due only to lack of information - "nothing is actually random". This is often how people actually think of a probability; this is exaggerated by the fact that people interpret 'non-Bayesian' probabilities as 'Bayesian', yet the reverse is unheard-of.
 
 Bayesian statistical inference was popular, historically, first, however it signifcantly died in the 1900's due to popular opinion, but it has been on the rise since the 1990's.
+
 
