@@ -1,5 +1,5 @@
 ## Notes from session #2
-### Pages 1-14
+### Pages 1-13
 
 #### Statistical golems
 
