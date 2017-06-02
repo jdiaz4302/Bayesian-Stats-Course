@@ -1,5 +1,5 @@
 ## Notes from session #3
-### Pages 19-
+### Pages 19-27
 
 
 #### Intro
