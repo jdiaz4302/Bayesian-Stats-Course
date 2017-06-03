@@ -1,5 +1,5 @@
 ## Notes from session #3
-### Pages 27-
+### Pages 27-33
 
 
 Formally, to randomize something means that you know almost nothing about its arrangement - to erase prior knowledge. If you have randomized sufficiently, then the arrangement is said to have high 'information entropy' (disorder).
