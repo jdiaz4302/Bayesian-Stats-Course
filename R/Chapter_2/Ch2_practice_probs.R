@@ -220,5 +220,74 @@ prob_other_side_black_given_this_is <- numerator / (1/3)
 # This is considered certain
 # Female panda gives birth to twins
 # What is P(her next birth is twins)
+# P(her next birth is twins) = P(twins|she is A) * P(she is A) +
+#                              P(twins|she is B) * P(she is B)
+#
+# A has 10% of twins, B has 20%, so
+# 1/3 chance she is A, 2/3 chance she is B
+# P(her next birth is twins) = (1/10 * 1/3 + 2/10 * 2/3)
+prob_her_next_birth_is_twins <- 1/30 + 4/30
+# 0.1666666666666667
+# 1/6
+
+
+### Question 2H2 ###
+# She had twins
+# We species B has double (20%) as many twins as species A (10%)
+prob_she_is_A <- .10/(.10+.20)
+# 0.3333333333
+# 1/3
+
+
+### Question 2H3 ###
+# She has 2nd birth
+# Not twins, P(she is A) now
+prob_A_has_twins <- 0.10
+
+A_prob_half_birth_are_twins <- dbinom(1, size = 2, prob = prob_A_has_twins)
+
+prob_B_has_twins <- 0.20
+
+B_prob_half_birth_are_twins <- dbinom(1, size = 2, prob = prob_B_has_twins)
+
+denominator <- (A_prob_half_birth_are_twins + B_prob_half_birth_are_twins)
+
+prob_she_is_A_now <- A_prob_half_birth_are_twins / denominator
+# 0.36
+
+
+### Question 2H4 ###
+# New genetic test to determine panda species
+# It isn't perfect though
+# P(correctly identifies A) = 0.80
+# P(correctly identifies B) = 0.65
+### Part 1
+# P(test = A|species = A) = 0.80
+# P(test = A|species = B) = 0.35
+# P(test = B|species = B) = 0.65
+# P(test = B|species = A) = 0.20
+#
+# P(test = A) = P(test = A|species = A) * P(species = A) +
+#               P(test = A|species = B) * P(species = B)
+#
+# P(species = A) = P(species = B) = 0.5
+#
+prob_test_says_A <- 8/10 * 1/2 + 35/100 * 1/2
+
+prob_test_says_A_correctly <- 8/10 * 1/2 
+
+prob_she_is_A_with_test_saying_so <- prob_test_says_A_correctly / prob_test_says_A
+# 0.6956522
+#
+### Part 2
+# incorporate the birth of twins and birth of singleton
+# P(species = A) = 0.36
+# P(species = B) = 0.64
+prob_test_says_A_now <- 8/10 * 36/100 + 35/100 * 64/100
+
+prob_test_says_A_now_correctly <- 8/10 * 36/100
+
+prob_she_is_A_now_with_test_saying_so <- prob_test_says_A_now_correctly / prob_test_says_A_now
+# 0.5625
 
 
