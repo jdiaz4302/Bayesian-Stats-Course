@@ -1,4 +1,4 @@
-## Notes from session #4
+## Notes from session #6
 ### Pages 49-52
 
 

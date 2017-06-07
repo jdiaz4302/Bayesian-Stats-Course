@@ -238,3 +238,53 @@ n <- median(samples)
 # The only reason they're not is because of sampling variation
 
 
+# Getting 'dummy data' from our earth water proportion example
+# assuming p = 0.7 and number of W = 0, 1, and 2 out of 2 total tosses
+dbinom(0:2, size = 2, prob = 0.7)
+# 0 W is less likely than 1 is less likely than 2
+
+# Sample an observation from that binomial distribution
+rbinom(1, size = 2, prob = 0.7)
+
+# Sample 10 observations
+rbinom(10, size = 2, prob = 0.7)
+# To clarify this simulates how many W's you get from 2 tosses
+# If proportion of W = 0.70
+# This is done 10 times here
+
+# Simulate 100,000 observations and check proportion of each value 
+# To make sure it matches with the distribution
+dummy_w <- rbinom(1e5, size = 2, prob = 0.7)
+
+# Table() is just a sum of each
+table(dummy_w) / 1e5
+
+# To remind what it should be
+dbinom(0:2, size = 2, prob = 0.7)
+
+
+# Lets do same thing but 9 total tosses instead of 2
+dummy_w <- rbinom(1e5, size = 9, prob = 0.7)
+
+rethinking::simplehist(dummy_w, xlab = "Dummy Water Count")
+
+# This histogram is better
+hist(dummy_w, xlab = "Dummy Water Count", xlim = c(0, 10))
+
+
+# Posterior predictive distribution
+# Generate the samples
+# Using p = 0.6
+# This uses 1 parameter, the most likely
+w <- rbinom(1e4, size = 9, prob = 0.6)
+
+rethinking::simplehist(w)
+
+# Using p = posterior
+w <- rbinom(1e4, size = 9, prob = samples)
+
+rethinking::simplehist(w)
+# There is much more uncertainty displayed in this model
+# Which is more accurate and therefore good and honest
+
+

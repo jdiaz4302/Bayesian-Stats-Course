@@ -1,4 +1,4 @@
-## Notes from session #2
+## Notes from session #1
 ### Pages 1-13
 
 
