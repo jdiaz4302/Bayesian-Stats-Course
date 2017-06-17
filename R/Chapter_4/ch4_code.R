@@ -135,3 +135,52 @@ contour_xyz(post$mu, post$sigma, post$prob)
 image_xyz(post$mu, post$sigma, post$prob)
 
 
+# Sample from the posterior
+# The sampling - remember, "post" is a dataframe with columns for
+# Each parameter value combination and the associated plausibility
+sample_rows <- sample(1:nrow(post), size = 1e4, replace = TRUE, prob = post$prob)
+sample_mu <- post$mu[sample_rows]
+sample_sigma <- post$sigma[sample_rows]
+
+# View it
+plot(sample_mu, sample_sigma, pch = 16, cex = 0.5,
+     col = col.alpha("red", 0.025))
+# The darkest region of the plot corresponds to the most likely parameter values
+
+
+# View the marginal distributions of mu and sigma
+# Where marginal means "averaging over the other parameters"
+dens(sample_mu)
+dens(sample_sigma)
+# Each of these is approximately normal
+# However, the sigma distribution has a relatively longer right-tail
+# This is because there is sigma must be > 0, which entails there
+# Being less uncertainty on the left-tail since we have some information
+# About its bound
+HPDI(sample_mu)
+HPDI(sample_sigma)
+
+
+# Let's look at a smaller subset of the height data
+d3 <- sample(d2$height, size = 20)
+
+# Running the same workflow
+mu_list <- seq(from = 150, to = 170, length.out = 200)
+sigma_list <- seq(from = 4, to = 20, length.out = 200)
+post2 <- expand.grid(mu = mu_list, sigma = sigma_list)
+post2$LL <- sapply(1:nrow(post2), function(i)
+  sum(dnorm(d3, mean = post2$mu[i], sd = post2$sigma[i], log = TRUE)))
+post2$prod <- post2$LL + dnorm(post2$mu, 178, 20, TRUE) + dunif(post2$sigma, 0, 50, TRUE)
+post2$prob <- exp(post2$prod - max(post2$prod))
+sample2_rows <- sample(1:nrow(post2), size = 1e4, replace = TRUE, prob = post2$prob)
+sample2_mu <- post2$mu[sample2_rows]
+sample2_sigma <- post2$sigma[sample2_rows]
+plot(sample2_mu, sample2_sigma, cex = 0.5,
+     col = col.alpha("red", 0.25))
+
+# This reduction in sample size leads to a disproportionately 
+# Large increase in the right tail of sigma
+dens(sample2_sigma, norm.comp = TRUE, lwd = 3, col = "red")
+# This is much less "Normal" than before
+
+
