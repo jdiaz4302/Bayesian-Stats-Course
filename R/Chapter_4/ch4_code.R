@@ -325,3 +325,123 @@ plot(d2$height ~ d2$weight, pch = 16, col = "dark blue")
 # Pretty strong and positively
 
 
+# Fitting the model with a predictor: weight
+# Reload the data
+library(rethinking)
+data(Howell1)
+d <- Howell1
+d2 <- d[d$age >= 18, ]
+
+# Fit the model
+m4_3 <- map(alist(height ~ dnorm(mu, sigma),
+                  mu <- a + b*weight,
+                  a ~ dnorm(156, 100),
+                  b ~ dnorm(0, 10),
+                  sigma ~ dunif(0, 50)),
+            data = d2)
+# mu isn't really a parameter anymore
+# Its a function of parameters
+
+
+# Table of estimates
+precis(m4_3)
+# mean(b) = 0.90, which can be read as "A person that is
+# 1kg heavier is expected to be 0.9 inches taller"
+# The bounds for the middle 89% are 0.84 and 0.97, so our
+# Prior mean of 0 is extremely incompatible with the model
+# The model suggests a strong evidence of a positive relationship
+#
+# The value of the intercept is often uninterpretable because
+# It often says strange things, such as "A person of 0 weight should
+# Be 114 cm tall".
+# This is part of the justification for weak priors for the intercept
+# 
+# The sigma mean is 5.07, which can then lead us to "95% of the plausible
+# Heights lie within ~10cm of the mean." However, there is uncertainty
+# As indicated by the 89% percentile interval.
+
+# View the correlation matrix with it
+precis(m4_3, corr = TRUE)
+# Notice how the parameters from the relationship are almost
+# Perfectly, negatively correlated. This is almost always bad.
+
+
+# One trick to help this is centering
+# Here is how you do it
+d2$weight_c <- d2$weight - mean(d2$weight)
+
+# Confirm new mean is zero
+mean(d2$weight_c)
+# Approximately
+
+# Refit the model
+m4_4 <- map(alist(height ~ dnorm(mu, sigma),
+                  mu <- a + b*weight_c,
+                  a ~ dnorm(178, 100),
+                  b ~ dnorm(0, 10),
+                  sigma ~ dunif(0, 50)),
+            data = d2)
+
+# New estimates
+precis(m4_4, corr = TRUE)
+# All covariances are 0 now
+
+# Note that mean(a) is now equal to
+mean(d2$height)
+# This is because "a" is the expected value of the outcome
+# When the predictor is equal to 0, and now the expected value
+# Of the predictor is 0. So mean(a) can be read as "the expected
+# Value of the outcome at the expected value of the predictor"
+
+
+# Plotting posterior inference against the data
+plot(height ~ weight, data = d2, col = "grey45", pch = 16)
+abline(a = coef(m4_3)["a"], b = coef(m4_3)["b"],
+       lwd = 3, col = "red")
+
+
+# Adding uncertainty around the mean
+# Extract samples from the model
+post <- extract.samples(m4_3)
+head(post)
+# Each row is a correlated random sample from the joint posterior
+# Of the parameters, using the marginal posteriors and convariances
+# Each row specifies a line, the average of these lines is the 
+# MAP line
+# The scatter around the MAP line meaningful because it conveys
+# The uncertainty
+
+
+# Exercise in visualize the uncertainty
+# Fit the model using only 10 data points
+N <- 10
+dN <- d2[1:N, ]
+mN <- map(alist(height ~ dnorm(mu, sigma),
+                mu <- a + b*weight,
+                a ~ dnorm(178, 100),
+                b ~ dnorm(0, 10),
+                sigma ~ dunif(0, 50)),
+          data = dN)
+# Get 20 of the lines to see the uncertainty
+post <- extract.samples(mN, n = 20)
+
+# Plot the data
+plot(dN$weight, dN$height, xlim = range(dN$weight),
+     ylim = range(dN$height), col = "grey45", pch = 16,
+     xlab = "Weight", ylab = "Height")
+
+# Add the lines
+for (i in 1:20) {
+  abline(a = post$a[i], b = post$b[i], lwd = 3,
+         col = col.alpha("dark blue", 0.3))
+}
+# The most uncertainty lies at the bounds of the range
+# This is very common
+# The more data used, the less uncertainty there will be
+
+# Run the above code after running each N value
+N <- 50
+N <- 150
+N <- 352
+
+
