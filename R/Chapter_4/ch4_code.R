@@ -445,3 +445,149 @@ N <- 150
 N <- 352
 
 
+# View the uncertainty of 1 mu value
+# At one predictor value
+mu_at_50 <- post$a + post$b * 50
+# This is the Alpha + Beta*weight
+# where $a and $b are length 20 vectors
+mu_at_50
+
+
+# View the density
+dens(mu_at_50, col = "red", lwd = 3, xlab = "mu | weight = 50")
+# Note that this is Gaussian because adding Gaussians produce 
+# Gaussians
+
+
+# HPDI for it
+HPDI(mu_at_50, prob = 0.89)
+# This intervals' bounds indicate that the densest 89% of ways for
+# The model to produce the data have the MAP line between lower bound 
+# And upper bound
+# We want to do this for every value, not just 50.
+
+
+# This function samples the posterior and computes mu
+mu <- link(m4_3)
+str(mu)
+# It creates a distribution of mu's for each individual in the 
+# Original data
+
+# So, lets feed it 'new data'
+# Define sequence of weights for mu computation
+weight_seq <- seq(from = 25, to = 70, by = 1)
+# Using this sequence because its evenly spaced and unique
+# Where the original data may not have been so
+
+# Feed that into link()
+mu <- link(m4_3, data = data.frame(weight = weight_seq))
+str(mu)
+
+
+# Plot each mu for each height
+plot(height ~ weight, d2,
+     type = "n")                 # Hides the data points
+
+for (i in 1:100) {
+  points(weight_seq, mu[i, ], pch = 16, col = col.alpha(rangi2, 0.15))
+}
+
+
+# Summarize the distribution for each weight value
+mu_mean <- apply(mu, 2,                       # Dimension 2, aka the columns
+                 mean)                        # For each unique weight value
+
+mu_HPDI <- apply(mu, 2,
+                 HPDI, prob = 0.89)
+
+
+# To view the means for each
+mu_mean
+# To view the lower bounds for each
+mu_HPDI[1,]
+# ...The upper bounds
+mu_HPDI[2,]
+### REMEMBER ###
+# Everything above is describing uncertainty associated with the
+# mu parameter, the mean height at each weight
+
+
+# Prediction intervals
+# Now we plot the prediction interval for actual heights - not average
+# So we need to incorporate mu and sigma into Normal(mu, sigma)
+sim_height <- sim(m4_3,                                   # Uses the fit model
+                  data = list(weight = weight_seq))       # Evenly-spaced x's
+str(sim_height)
+
+
+# Simulate the confidence interval for the simulated height
+height_PI <- apply(sim_height, 2, PI, prob = 0.89)
+height_PI_2 <- apply(sim_height, 2, PI, prob = 0.97)
+height_PI_3 <- apply(sim_height, 2, PI, prob = 0.67)
+
+
+# Plot it all
+# The point
+plot(height ~ weight, d2, pch = 21)
+
+# The MAP line
+lines(weight_seq, mu_mean, lwd = 3)
+
+# The HPDI for MAP line
+shade(mu_HPDI, weight_seq, col = col.alpha("red", 0.45))
+
+# The 89% confidence interval for the height prediction
+shade(height_PI, weight_seq, col = col.alpha('grey50', 0.25))
+
+# The other 2
+shade(height_PI_2, weight_seq, col = col.alpha('grey50', 0.15))
+shade(height_PI_3, weight_seq, col = col.alpha('grey50', 0.35))
+
+
+# Smoothing out jagged edges
+sim_height <- sim(m4_3, data = list(weight = weight_seq), n = 1e4)
+
+height_PI <- apply(sim_height, 2, PI, prob = 0.89)
+height_PI_2 <- apply(sim_height, 2, PI, prob = 0.97)
+height_PI_3 <- apply(sim_height, 2, PI, prob = 0.67)
+
+plot(height ~ weight, d2, pch = 21)
+lines(weight_seq, mu_mean, lwd = 3)
+shade(mu_HPDI, weight_seq, col = col.alpha("red", 0.45))
+shade(height_PI, weight_seq, col = col.alpha('grey50', 0.25))
+shade(height_PI_2, weight_seq, col = col.alpha('grey50', 0.15))
+shade(height_PI_3, weight_seq, col = col.alpha('grey50', 0.35))
+# Its harder to get out the jaggedness from the larger intervals because
+# They increasingly include extremer extremes
+
+
+# Polynomial Regression
+library(rethinking)
+data("Howell1")
+d <- Howell1
+
+plot(d$height ~ d$weight)
+
+
+# Standardize weight
+d$weight_s <- (d$weight - mean(d$weight)) / sd(d$weight)
+
+plot(d$height ~ d$weight_s)
+# Literally no information loss, the plot even looks the same
+
+# Get weight sqaured
+d$weight_s2 <- d$weight_s^2
+
+
+# Fit the model
+m4_5 <- map(alist(height ~ dnorm(mu, sigma),
+                  mu <- a + b1*weight_s + b2*weight_s2,
+                  a ~ dnorm(178, 100),
+                  b1 ~ dnorm(0, 10),
+                  b2 ~ dnorm(0, 10),
+                  sigma ~ dunif(0, 50)),
+            data = d)
+
+precis(m4_5)
+
+
