@@ -588,6 +588,50 @@ m4_5 <- map(alist(height ~ dnorm(mu, sigma),
                   sigma ~ dunif(0, 50)),
             data = d)
 
+# View a summary table
 precis(m4_5)
+
+
+# The evenly-spaced x values
+weight_seq <- seq(from = -2.2, to = 2, length.out = 30)
+
+# Getting those values into the x and x^2 format
+pred_dat <- list(weight_s = weight_seq, weight_s2 = weight_seq^2)
+
+# Getting mu samples and mean(mu) for those
+mu <- link(m4_5, data = pred_dat)
+mu_mean <- apply(mu, 2, mean)
+
+# Getting the confidence interval for mean(mu)
+mu_PI <- apply(mu, 2, PI, prob = 0.89)
+
+# Simulating outcomes based off the evenly-spaced predictor values
+sim_height <- sim(m4_5, data = pred_dat)
+
+# Creating a confidence interval with those simulated outcomes
+height_PI <- apply(sim_height, 2, PI, prob = 0.89)
+
+
+# Plot points
+plot(height ~ weight_s, d, col = "grey45")
+
+# MAP line
+lines(weight_seq, mu_mean, lwd = 3)
+
+# 89% confidence interval for MAP line
+shade(mu_PI, weight_seq, col = col.alpha("red", 0.45))
+
+# 89% condifence interval for predictions
+shade(height_PI, weight_seq)
+
+
+# Convert back to natural scale
+plot(height ~ weight_s, d, col = "grey45",
+     xaxt = "n")                              # Turn off x axis
+
+# Construct it
+at <- c(-2, -1, 0, 1, 2)
+labels <- at*sd(d$weight) + mean(d$weight)
+axis(side = 1, at = at, labels = round(labels, 1))
 
 

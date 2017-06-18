@@ -1,5 +1,5 @@
 ## Notes from session #14
-### Pages 102-
+### Pages 102-112
 
 
 #### Plotting regression intervals and contours
