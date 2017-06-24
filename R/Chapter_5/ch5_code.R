@@ -673,6 +673,3 @@ precis(m5_16_alt, depth = 2)
 # Same result as earlier, works easier
 
 
-# Ordinary least squares and lm
-
-
