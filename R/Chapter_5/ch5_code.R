@@ -297,3 +297,291 @@ pairs(d)
 # Will be near 0, while x_real will be close to 1
 
 
+# Masked Relationships
+# Set up
+library(rethinking)
+data(milk)
+d <- milk
+str(d)
+# The variables we'll focus on are...
+# kcal.per.g
+# -> kilocalories of energy per gram of milk
+# mass
+# -> average female body mass, in kg
+# and neocortex.perc
+# -> the percent of total brain mass that is neocortex mass
+# kcal.per.g is the outcome
+
+
+# Fit the first model
+m5_5 <- map(alist(kcal.per.g ~ dnorm(mu, sigma),
+                  mu <- a + bn*neocortex.perc,
+                  a ~ dnorm(0, 100),
+                  bn ~ dnorm(0, 1),
+                  sigma ~ dunif(0, 1)),
+            data = d)
+# This returns an error
+# "initial value in 'vmmin' is not finite
+d$neocortex.perc
+# There are NA values
+
+# Only keep complete data entries, no NAs
+dcc <- d[complete.cases(d), ]
+
+# Redo the earlier code
+m5_5 <- map(alist(kcal.per.g ~ dnorm(mu, sigma),
+                  mu <- a + bn*neocortex.perc,
+                  a ~ dnorm(0, 100),
+                  bn ~ dnorm(0, 1),
+                  sigma ~ dunif(0, 1)),
+            data = dcc)
+# Quick look
+precis(m5_5, digits = 3)
+# Telling us that neocortex percent has ~0 influence
+# Because the 89% PI is approximately centered on 0
+# Also
+dif <- range(dcc$neocortex.perc)[2] - range(dcc$neocortex.perc)[1]
+dif*coef(m5_5)["bn"]
+# From min to max neocortex.perc, this model suggests that you would
+# See only a  < 0.1 rise in kilocaries per gram
+
+# View this
+np_seq <- 0:100
+pred_data <- data.frame(neocortex.perc = np_seq)
+
+mu <- link(m5_5, data = pred_data, n = 1e4)
+mu_mean <- apply(mu, 2, mean)
+mu_PI <- apply(mu, 2, PI)
+
+plot(kcal.per.g ~ neocortex.perc, data = dcc, pch = 16)
+lines(np_seq, mu_mean)
+lines(np_seq, mu_PI[1, ], lty = 2)
+lines(np_seq, mu_PI[2, ], lty = 2)
+# Notice how large PI for the map line is
+# It's large for even the prediction PI
+
+
+# Lets try a single predictor regression with log(female body mass)
+# As the predictor
+dcc$log_mass <- log(dcc$mass)
+
+# Fit the new model
+m5_6 <- map(alist(kcal.per.g ~ dnorm(mu, sigma),
+                  mu <- a + bm*log_mass,
+                  a ~ dnorm(0, 100),
+                  bm ~ dnorm(0, 1),
+                  sigma ~ dunif(0, 1)),
+            data = dcc)
+# Quick look
+precis(m5_6, digits = 3)
+# Points
+plot(kcal.per.g ~ log_mass, dcc, pch = 16)
+# MAP line and PI for line
+mass_seq <- seq(-3, 5, length.out = 30)
+pred_data <- data.frame(log_mass = mass_seq)
+mu <- link(m5_6, data = pred_data, n = 1e4)
+mu_mean <- apply(mu, 2, mean)
+mu_PI <- apply(mu, 2, PI)
+# MAP line
+lines(mass_seq, mu_mean, lwd = 2)
+# PI for it
+lines(mass_seq, mu_PI[1, ], lty = 2)
+lines(mass_seq, mu_PI[2, ], lty = 2)
+
+
+# Using both predictors
+m5_7 <- map(alist(kcal.per.g ~ dnorm(mu, sigma),
+                  mu <- a + bn*neocortex.perc + bm*log_mass,
+                  a ~ dnorm(0, 100),
+                  bn ~ dnorm(0, 1),
+                  bm ~ dnorm(0, 1),
+                  sigma ~ dunif(0, 1)),
+            data = dcc)
+
+precis(m5_7)
+# Both rates' PIs are out of 0 now
+
+# Plot counterfactual for these
+# FOr neocortex.perc
+mean_log_mass <- mean(log(dcc$mass))
+np_seq <- 1:100
+pred_data <- data.frame(neocortex.perc = np_seq,
+                        log_mass = mean_log_mass)
+
+mu <- link(m5_7, data = pred_data, n = 1e4)
+mu_mean <- apply(mu, 2, mean)
+mu_PI <- apply(mu, 2, PI)
+
+plot(kcal.per.g ~ neocortex.perc, data = dcc, type = "n")
+lines(np_seq, mu_mean, lwd = 2)
+lines(np_seq, mu_PI[1, ], lty = 2)
+lines(np_seq, mu_PI[2, ], lty = 2)
+
+# For log_mass
+mean_neo_perc <- mean(dcc$neocortex.perc)
+mass_seq <- seq(-2.5, 4.5, length.out = 100)
+pred_data <- data.frame(neocortex.perc = mean_neo_perc,
+                        log_mass = mass_seq)
+
+mu <- link(m5_7, data = pred_data, n = 1e4)
+mu_mean <- apply(mu, 2, mean)
+mu_PI <- apply(mu, 2, PI)
+
+plot(kcal.per.g ~ log_mass, data = dcc, type = "n")
+lines(mass_seq, mu_mean, lwd = 2)
+lines(mass_seq, mu_PI[1, ], lty = 2)
+lines(mass_seq, mu_PI[2, ], lty = 2)
+
+
+# Multicollinear legs
+N <- 100
+height <- rnorm(N, 10, 2)                          # Height
+leg_prop <- runif(N, 0.4, 0.5)                     # Proportion of height that is legs
+leg_left <- leg_prop*height + rnorm(N, 0, 0.02)    # Legs are not exactly same length
+leg_right <- leg_prop*height + rnorm(N, 0, 0.02)
+d <- data.frame(height, leg_left, leg_right)       # Making a df
+
+# Fit model
+m5_8 <- map(alist(height ~ dnorm(mu, sigma),
+                  mu <- a + bl*leg_left + br*leg_right,
+                  a ~ dnorm(10, 100),
+                  bl ~ dnorm(2, 10),
+                  br ~ dnorm(2, 10),
+                  sigma ~ dunif(0, 10)),
+            data = d)
+precis(m5_8)
+# Table is strange, lets plot it
+plot(precis(m5_8))
+# Huge uncertainty in coefficients
+
+# View all the combinations of the coefficients
+post <- extract.samples(m5_8)
+plot(bl ~ br, post, col = col.alpha(rangi2, 0.1), pch = 16)
+
+
+sum_blbr <- post$bl + post$br
+dens(sum_blbr, col = rangi2, lwd = 2, xlab = "Sum of the Two Coefficients")
+# Notice the peak of this distribution lies at the sum of the means for the
+# Coefficients
+abline(v = coef(m5_8)["bl"] + coef(m5_8)["br"])
+
+
+# If you fit a regression model with only 1 of the multicollinear variables
+# You get approximately the same coefficient as the sums of the multicollinear
+# Coefficients
+m5_9 <- map(alist(height ~ dnorm(mu, sigma),
+                  mu <- a + bl*leg_left,
+                  a ~ dnorm(10, 100),
+                  bl ~ dnorm(2, 10),
+                  sigma ~ dunif(0, 10)),
+            data = d)
+precis(m5_9)
+post <- extract.samples(m5_9)
+dens(post$bl, col = rangi2, lwd = 2, xlab = "Posterior Distribution of Left Leg Coefficients")
+# Approximately the same as the last plot
+
+
+# Returning to milk to see multicollinear in more realistic setting
+library(rethinking)
+data(milk)
+d <- milk
+
+# Model based on percent fat
+m5_10 <- map(alist(kcal.per.g ~ dnorm(mu, sigma),
+                   mu <- a + bf*perc.fat,
+                   a ~ dnorm(0.6, 10),
+                   bf ~ dnorm(0, 1),
+                   sigma ~ dunif(0, 10)),
+             data = d)
+
+# Based on percent lactose
+m5_11 <- map(alist(kcal.per.g ~ dnorm(mu, sigma),
+                   mu <- a + bl*perc.lactose,
+                   a ~ dnorm(0.6, 10),
+                   bl ~ dnorm(0, 1),
+                   sigma ~ dunif(0, 10)),
+             data = d)
+
+precis(m5_10, digits = 3)
+precis(m5_11, digits = 3)
+
+plot(d$kcal.per.g ~ d$perc.fat, pch = 16)
+abline(m5_10)
+
+plot(d$kcal.per.g ~ d$perc.lactose, pch = 16)
+abline(m5_11)
+# Although coefficients are small, the plots
+# Show pretty sizable effects
+
+# A model based on percent lactose and fat
+m5_12 <- map(alist(kcal.per.g ~ dnorm(mu, sigma),
+                   mu <- a + bf*perc.fat + bl*perc.lactose,
+                   a ~ dnorm(0.6, 10),
+                   bf ~ dnorm(0, 1),
+                   bl ~ dnorm(0, 1),
+                   sigma ~ dunif(0, 10)),
+             data = d)
+# Everything looks a lot less good now
+precis(m5_12, digits = 3)
+# This is why
+precis(m5_12, digits = 3, corr = TRUE)
+# multicollinearity that is almost perfect
+
+# Another way to see this
+pairs(~kcal.per.g + perc.fat + perc.lactose, data = d, col = rangi2)
+# Fat and lactose percents are essentially giving us the same information
+# To the point of redudancy
+
+
+# Post-treatment bias
+# Simulation of data
+# Number of plants
+N <- 100
+
+# Simulate initial heights
+h0 <- rnorm(N, 10, 2)
+
+# Assign treatments and simulate fungus and growth
+treatment <- rep(0:1, each = N/2)
+# The following variable is influenced by treatment
+fungus <- rbinom(N, size = 1, prob = 0.5 - treatment*0.4)
+# Simulate ending heights
+h1 <- h0 + rnorm(N, 5 - 3*fungus)
+
+# Make it all into a df
+d <- data.frame(h0 = h0, h1 = h1, treatment = treatment, fungus = fungus)
+
+# Make a model
+m5_13 <- map(alist(h1 ~ dnorm(mu, sigma),
+                   mu <- a + bh*h0 + bt*treatment + bf*fungus,
+                   a ~ dnorm(0, 100),
+                   c(bh, bt, bf) ~ dnorm(0, 10),
+                   sigma ~ dunif(0, 10)),
+             data = d)
+precis(m5_13)
+# We know that the precense of fungus and treatment are both things that matter
+# The issue is that precense of fungus is largely a result of treatment
+# We simulated it that way
+# So, the low values for the coefficient of treatment are telling us that
+# After we know the precense of fungus
+# Knowing the treatment tells us nothing
+# After all, the treatment was likely SUPPOSED to control the precense of fungus
+# This does, however, tell us that the treatment is working
+# It is affecting fungal precense, which is affecting growth/height
+
+# To properly know the treatment affect, we should omit the fungus variable from the model
+m5_14 <- map(alist(h1 ~ dnorm(mu, sigma),
+                   mu <- a + bh*h0 + bt*treatment,
+                   a ~ dnorm(0, 100),
+                   c(bh, bt) ~ dnorm(0, 10),
+                   sigma ~ dunif(0, 10)),
+             data = d)
+precis(m5_14)
+# m5_13 is not bad because it makes poor predictions or performs poorly
+# It bad because it uses bad science
+
+
+# Categorical variables
+
+
+
