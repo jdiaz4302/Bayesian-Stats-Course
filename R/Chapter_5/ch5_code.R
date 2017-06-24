@@ -582,6 +582,97 @@ precis(m5_14)
 
 
 # Categorical variables
+# Binary categories
+library(rethinking)
+data(Howell1)
+d <- Howell1
 
+# Make a model with sex, male indicator
+m5_15 <- map(alist(height ~ dnorm(mu, sigma),
+                   mu <- a + bm*male,
+                   a ~ dnorm(178, 100),
+                   bm ~ dnorm(0, 10),
+                   sigma ~ dunif(0, 50)),
+             data = d)
+precis(m5_15)
+# "a" is now the average height among females
+# "bm" is the difference between males and females
+# So, average male height is "a + bm"
+
+# This gives you the PI for the mean(male height)
+post <- extract.samples(m5_15)
+mu_male <- post$a + post$bm
+PI(mu_male)
+
+# Another way to set this up is using
+# mu <- af*(1-m) + am*m
+# Which is equivalent to
+# mu <- af - af*m + am*m
+# mu <- af - (am - af)*m
+# This more clearly demonstrates that the 
+# Coefficient of "m" is the difference in means
+
+
+# Multiple categories
+# Reload primate data
+data(milk)
+d <- milk
+unique(d$clade)
+# Make indicator for new world monkey
+d$clade_NWM <- ifelse(d$clade == "New World Monkey", 1, 0)
+# To get complete number of indicators
+d$clade_OWM <- ifelse(d$clade == "Old World Monkey", 1, 0)
+d$clade_S <- ifelse(d$clade == "Strepsirrhine", 1, 0)
+# No need to make an indicator for "Ape" because it will be
+# The default intercept
+
+# Fit the model
+m5_16 <- map(alist(kcal.per.g ~ dnorm(mu, sigma),
+                   mu <- a + b.NWM*clade_NWM + b.OWM*clade_OWM + b.S*clade_S,
+                   a ~ dnorm(0.6, 10),
+                   c(b.NWM, b.OWM, b.S) ~ dnorm(0, 1),
+                   sigma ~ dunif(0, 10)),
+             data = d)
+precis(m5_16)
+# The parameter values are the net change from mean(apes) to mean(variable)
+
+# To view them easily
+# Take samples
+post <- extract.samples(m5_16)
+
+mu_ape <- post$a
+mu_NWM <- post$a + post$b.NWM
+mu_OWM <- post$a + post$b.OWM
+mu_S <- post$a + post$b.S
+
+# Summarize the results
+precis(data.frame(mu_ape, mu_NWM, mu_OWM, mu_S))
+# This is much more intuitive to read
+
+# Now you can get the estimate difference between monkey groups
+diff_NWM_OWM <- mu_NWM - mu_OWM
+quantile(diff_NWM_OWM, probs = c(0.025,    # PI lower bound
+                                 0.5,      # Median
+                                 0.975))   # PI upper bound
+
+
+# Unique intercepts
+# Make an index variable for a categorical variable
+d$clade_id <- coerce_index(d$clade)
+d$clade_id
+d$clade
+# Each category now has a numerical value based on its factor level
+
+# How to put this into a model
+m5_16_alt <- map(alist(kcal.per.g ~ dnorm(mu, sigma),
+                       mu ~ a[clade_id],
+                       a[clade_id] ~ dnorm(0.6, 10),
+                       sigma ~ dunif(0, 10)),
+                 data = d)
+precis(m5_16_alt, depth = 2)
+# Same result as earlier, works easier
+
+
+# Ordinary least squares and lm
 
 
