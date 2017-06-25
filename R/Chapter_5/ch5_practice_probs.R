@@ -278,6 +278,7 @@ both_mod <- map(alist(weight ~ dnorm(mu, sigma),
                 data = d)
 precis(both_mod)
 
+# New plot of weight ~ territory area
 group_avg <- mean(d$groupsize)
 pred_data <- data.frame(area = area_seq,
                         groupsize = group_avg)
@@ -288,5 +289,99 @@ mu_PI <- apply(mu, 2, PI)
 
 pred_weight <- sim(both_mod, data = pred_data, n = 1e4)
 weight_PI <- apply(pred_weight, 2, PI)
+
+plot(weight ~ area, d, pch = 16)
+lines(area_seq, mu_mean)
+shade(mu_PI, area_seq)
+shade(weight_PI, area_seq)
+
+# New plot of weight ~ group size
+area_avg <- mean(d$area)
+pred_data <- data.frame(area = area_avg,
+                        groupsize = group_seq)
+
+mu <- link(both_mod, data = pred_data)
+mu_mean <- apply(mu, 2, mean)
+mu_PI <- apply(mu, 2, PI)
+
+pred_weight <- sim(both_mod, data = pred_data, n = 1e4)
+weight_PI <- apply(pred_weight, 2, PI)
+
+plot(weight ~ groupsize, d, pch = 16)
+lines(group_seq, mu_mean)
+shade(mu_PI, group_seq)
+shade(weight_PI, group_seq)
+# The new plots show much stronger associations
+# This is is an example of a masked relationship
+# As the following plot shows
+pairs(~weight + area + groupsize, d)
+
+
+### 5H3 ###
+# Fit two more multiple regressions
+# Body weight as an additive function of avgfood and groupsize
+both_mod_2 <- map(alist(weight ~ dnorm(mu, sigma),
+                        mu <- a + bg*groupsize + bf*avgfood,
+                        a <- dnorm(0, 100),
+                        bg <- dnorm(0, 10),
+                        bf <- dnorm(0, 10),
+                        sigma <- dunif(0, 50)),
+                  data = d)
+precis(both_mod_2)
+
+# New plot of weight ~ food
+food_seq <- seq(0.25, 1.25, length.out = 100)
+group_avg <- mean(d$groupsize)
+pred_data <- data.frame(avgfood = food_seq,
+                        groupsize = group_avg)
+
+mu <- link(both_mod_2, data = pred_data)
+mu_mean <- apply(mu, 2, mean)
+mu_PI <- apply(mu, 2, PI)
+
+pred_weight <- sim(both_mod_2, data = pred_data, n = 1e4)
+weight_PI <- apply(pred_weight, 2, PI)
+
+plot(weight ~ avgfood, d, pch = 16)
+lines(food_seq, mu_mean)
+shade(mu_PI, food_seq)
+shade(weight_PI, food_seq)
+
+# View another pairwise
+pairs(~weight + area + avgfood, d)
+# Looks like the prediction PI using area catches more of the
+# Observed data than the prediction PI using avgfood
+# Area has a much narrower distribution too
+
+# Body weight as additive function of area, groupsize, and avgfood
+both_mod_3 <- map(alist(weight ~ dnorm(mu, sigma),
+                        mu <- a + bg*groupsize + bf*avgfood + ba*area,
+                        a <- dnorm(0, 100),
+                        bg <- dnorm(0, 10),
+                        bf <- dnorm(0, 10),
+                        ba <- dnorm(0, 10),
+                        sigma <- dunif(0, 50)),
+                  data = d)
+precis(both_mod_3)
+
+# Both area and avgfood's coef's PI got wider and they approached zero
+# Turns out that food and area are pretty well associated
+plot(d$avgfood ~ d$area)
+precis(both_mod_3, corr = TRUE)
+
+# Two predictors we're choosing between
+plot(d$weight ~ d$area)
+plot(d$weight ~ d$avgfood)
+
+# Their coef's are reduced yet the uncertainty increases because
+# bg*avgfood + ba*area can be approximated by
+# (bg + ba)(true variable) 
+# Where bg and ba are most abundant likely near 0
+# Yet infinitely large combinations work
+# Their coefficients aren't strongly on zero
+# Because their correlation isn't the best
+
+# All in all, I'd stick with area as a predictor
+# It's less uncertain yet it's prediction PI captures more of the data
 
 
