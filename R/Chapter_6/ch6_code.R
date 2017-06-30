@@ -76,7 +76,7 @@ lines(x, y, col = "blue", lwd = 2)
 y <- predict(m6_6, newdata = data.frame(mass = x))
 lines(x, y, col = "red", lwd = 2)
 # Add 0 line
-abline(h = 0)
+abline(h = 0, lty = 2)
 
 
 # Too few parameters hurts too
@@ -94,7 +94,7 @@ plot(brain ~ mass, d, col = "slateblue", pch = 16)
 for (i in 1:nrow(d)) {
   d_new <- d[-i, ]
   m0 <- lm(brain ~ mass, d_new)
-  abline(m0, col = "grey85")
+  abline(m0, col = "grey35")
 }
 
 # Overfit model
@@ -105,5 +105,15 @@ for (i in 1:nrow(d)) {
   m0 <- lm(brain ~ mass + I(mass^2) + I(mass^3) + I(mass^4) +
              I(mass^5), d_new)
   y <- predict(m0, newdata = data.frame(mass = x))
-  lines(x, y, col = "grey65")
+  lines(x, y, col = "grey35")
 }
+
+
+# Deviance and Log-probabilities
+# It's generally easy to get deviance in R
+(-2) * logLik(m6_1)
+# Deviance is based on uncertain parameters, so it
+# Has a posterior distribution, although R only reports
+# A point estimate
+
+
